@@ -21,7 +21,9 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         context.getLogger().log("Input: " + input);
         
         int totalDryTime = 0;
-        int averageDryTime = 0;
+        int numberOfValues = 0;
+        long q1 = 0;
+        long q3 = 0;
         
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
     	DynamoDBMapper mapper = new DynamoDBMapper(client);
@@ -33,9 +35,26 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         	dryTimes.add(dryData.getDryTime());
         }
         Collections.sort(dryTimes);
+
         
+        //long max = dryTimes.get(dryTimes.size()-1);
+        //long min = dryTimes.get(0);
+        if(dryTimes.size()/2 != 0) {
+        	//long median = dryTimes.get(dryTimes.size()/2);
+        	q1 = (dryTimes.get(dryTimes.size()/2/2 - 1) + dryTimes.get(dryTimes.size()/2/2))/2;
+        	q3 = (dryTimes.get(dryTimes.size()/2/2 + dryTimes.size()/2 + 1) + dryTimes.get(dryTimes.size()/2/2 + dryTimes.size()/2 + 2))/2;
+        }
         
-        return averageDryTime + "";
+        for(Long timeValue : dryTimes) {
+        	if(timeValue > q1 && timeValue < q3) {
+        		totalDryTime += timeValue;
+        		numberOfValues++;
+        	}
+        }
+        
+        // 1 2 3 4 5 6 7 8 9 
+        
+        return "";
     }
     
     public DynamoDBQueryExpression<DryData> dryTimeQuery(){

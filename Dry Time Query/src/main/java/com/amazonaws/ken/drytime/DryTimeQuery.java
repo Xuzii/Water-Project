@@ -71,12 +71,12 @@ public class DryTimeQuery implements RequestHandler<Object, String> {
     		for(WaterData waterData : queryWaterResult) {
     			System.out.println(waterData.toString());
     		}
-    		return "woohoo";
+    		return "Data Transferred!";
     	}
     	
     	catch (Exception e) {
     		e.printStackTrace(); 
-    		return "it didnt work";
+    		return "Something Broke!";
     	}
     	
     }

@@ -1,5 +1,7 @@
 package com.amazonaws.ken.drytime;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +27,13 @@ public class AverageDryTime implements RequestHandler<Object, String> {
     	DynamoDBMapper mapper = new DynamoDBMapper(client);
 
         List<DryData> queryResult = mapper.query(DryData.class, dryTimeQuery());
+        ArrayList<Long> dryTimes = new ArrayList<Long>();
         
         for(DryData dryData : queryResult) {
-        	totalDryTime += dryData.getDryTime();
+        	dryTimes.add(dryData.getDryTime());
         }
-        averageDryTime = totalDryTime / queryResult.size();
+        Collections.sort(dryTimes);
+        
         
         return averageDryTime + "";
     }

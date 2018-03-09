@@ -39,6 +39,7 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         
         //long max = dryTimes.get(dryTimes.size()-1);
         //long min = dryTimes.get(0);
+        //test
         if(dryTimes.size()/2 != 0) {
         	//long median = dryTimes.get(dryTimes.size()/2);
         	q1 = (dryTimes.get(dryTimes.size()/2/2 - 1) + dryTimes.get(dryTimes.size()/2/2))/2;

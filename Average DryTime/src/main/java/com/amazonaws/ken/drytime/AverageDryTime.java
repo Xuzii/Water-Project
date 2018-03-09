@@ -1,10 +1,14 @@
 package com.amazonaws.ken.drytime;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
@@ -30,31 +34,26 @@ public class AverageDryTime implements RequestHandler<Object, String> {
 
         List<DryData> queryResult = mapper.query(DryData.class, dryTimeQuery());
         ArrayList<Long> dryTimes = new ArrayList<Long>();
-        
+        ArrayList<Date> valveOpenTimes = new ArrayList<Date>();
         for(DryData dryData : queryResult) {
         	dryTimes.add(dryData.getDryTime());
         }
+        for(DryData timeStamp : queryResult) {
+        	Date formattedDate;
+			try {
+				formattedDate = dateFormatter().parse(timeStamp.getTimeStamp());
+				valveOpenTimes.add(formattedDate);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+        }
         Collections.sort(dryTimes);
+        Collections.sort(valveOpenTimes);
+        long averageDryTime = bestTime(dryTimes);
 
         
-        //long max = dryTimes.get(dryTimes.size()-1);
-        //long min = dryTimes.get(0);
-        if(dryTimes.size()/2 != 0) {
-        	//long median = dryTimes.get(dryTimes.size()/2);
-        	q1 = (dryTimes.get(dryTimes.size()/2/2 - 1) + dryTimes.get(dryTimes.size()/2/2))/2;
-        	q3 = (dryTimes.get(dryTimes.size()/2/2 + dryTimes.size()/2 + 1) + dryTimes.get(dryTimes.size()/2/2 + dryTimes.size()/2 + 2))/2;
-        }
         
-        for(Long timeValue : dryTimes) {
-        	if(timeValue > q1 && timeValue < q3) {
-        		totalDryTime += timeValue;
-        		numberOfValues++;
-        	}
-        }
-        
-        // 1 2 3 4 5 6 7 8 9 
-        
-        return "";
+        return totalDryTime / numberOfValues + "";
     }
     
     public DynamoDBQueryExpression<DryData> dryTimeQuery(){
@@ -67,6 +66,36 @@ public class AverageDryTime implements RequestHandler<Object, String> {
 				.withFilterExpression("statusOfProcess = :val2")
 				.withExpressionAttributeValues(eav);
         return dryTimeQueryExpression;
+    }
+    public SimpleDateFormat dateFormatter() {
+    	SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		dateFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+		return dateFormatter;
+    }
+    public long bestTime(ArrayList<Long> dataSet) {
+        //long max = dryTimes.get(dryTimes.size()-1);
+        //long min = dryTimes.get(0);
+    	long q1 = 0; 
+    	long q3 = 0;
+        if(dataSet.size()/2 != 0) {
+        	//long median = dryTimes.get(dryTimes.size()/2);
+        	q1 = (dataSet.get(dataSet.size()/2/2 - 1) + dataSet.get(dataSet.size()/2/2))/2;
+        	q3 = (dataSet.get(dataSet.size()/2/2 + dataSet.size()/2 + 1) + dataSet.get(dataSet.size()/2/2 + dataSet.size()/2 + 2))/2;
+        }
+        else if(dataSet.size()/2 == 0) {
+        	q1 = dataSet.get(dataSet.size()/2/2);
+        	q3 = dataSet.get(dataSet.size()/2 + dataSet.size()/2/2);
+        }
+        long totalDryTime = 0;
+        int numberOfValues = 0;
+        for(Long timeValue : dataSet) {
+        	if(timeValue > q1 && timeValue < q3) {
+        		totalDryTime += timeValue;
+        		numberOfValues++;
+        	}
+        }
+        return totalDryTime/numberOfValues;
+    	
     }
 
 }

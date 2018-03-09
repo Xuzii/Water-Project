@@ -28,7 +28,7 @@ public class writeData implements RequestHandler<RequestData, String> {
         setWaterData(data, dateNow, input);
         
         mapper.save(data);
-        
+        //damn
         return "time: " + dateNow.toString() + 
         		" | waterlevel: " + input.getWaterLevel() +
         		" | valveopen: " + input.getValveOpen();

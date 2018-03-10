@@ -24,14 +24,9 @@ public class AverageDryTime implements RequestHandler<Object, String> {
     public String handleRequest(Object input, Context context) {
         context.getLogger().log("Input: " + input);
         
-        int totalDryTime = 0;
-        int numberOfValues = 0;
-        long q1 = 0;
-        long q3 = 0;
-        
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
     	DynamoDBMapper mapper = new DynamoDBMapper(client);
-
+    	
         List<DryData> queryResult = mapper.query(DryData.class, dryTimeQuery());
         ArrayList<Long> dryTimes = new ArrayList<Long>();
         ArrayList<Date> valveOpenTimes = new ArrayList<Date>();
@@ -53,7 +48,7 @@ public class AverageDryTime implements RequestHandler<Object, String> {
 
         
         
-        return totalDryTime / numberOfValues + "";
+        return averageDryTime + "";
     }
     
     public DynamoDBQueryExpression<DryData> dryTimeQuery(){
@@ -73,12 +68,9 @@ public class AverageDryTime implements RequestHandler<Object, String> {
 		return dateFormatter;
     }
     public long bestTime(ArrayList<Long> dataSet) {
-        //long max = dryTimes.get(dryTimes.size()-1);
-        //long min = dryTimes.get(0);
     	long q1 = 0; 
     	long q3 = 0;
         if(dataSet.size()/2 != 0) {
-        	//long median = dryTimes.get(dryTimes.size()/2);
         	q1 = (dataSet.get(dataSet.size()/2/2 - 1) + dataSet.get(dataSet.size()/2/2))/2;
         	q3 = (dataSet.get(dataSet.size()/2/2 + dataSet.size()/2 + 1) + dataSet.get(dataSet.size()/2/2 + dataSet.size()/2 + 2))/2;
         }

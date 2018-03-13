@@ -20,7 +20,11 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 
 public class AverageDryTime implements RequestHandler<Object, Boolean> {
 
-    @Override
+    
+    public static final String URL_OPENWEATHERMAP_WEATHER_SAMMAMISH =
+    		"http://api.openweathermap.org/data/2.5/weather?q=Sammamish";
+	
+	@Override
     public Boolean handleRequest(Object input, Context context) {
         context.getLogger().log("Input: " + input);
         
@@ -52,7 +56,9 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 
         System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
         
-        if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
+        if (queryResult.size() < 7) {
+        	return false;
+        } else if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
         	if(queryResult.get(queryResult.size() - 1).getDryTime() < averageDryTime + 60000 && queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
         		return true;
         	}else {

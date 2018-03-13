@@ -30,46 +30,49 @@ public class DryTimeQuery implements RequestHandler<Object, String> {
     		List<DryData> queryDryResult = mapper.query(DryData.class, dryDataQuery(mapper));
     		
     		if(!queryWaterResult.isEmpty()){
+    			
     				int waterLevel = queryWaterResult.get(queryWaterResult.size() - 1).getWaterLevel();
     				int valveOpen = queryWaterResult.get(queryWaterResult.size() - 1).getValveOpen();
+    				Date parsedWaterTime = dateFormatter().parse(queryWaterResult.get(queryWaterResult.size() - 1).getTimeStamp());
+    				DryData dryData = new DryData();
     				
-            		if(waterLevel <= EMPTY_WATER_LEVEL) {
-            			Date parsedWaterTime = dateFormatter().parse(queryWaterResult.get(queryWaterResult.size() - 1).getTimeStamp());
+            		if(!queryDryResult.isEmpty()){
             			
-            			DryData dryData = new DryData();
-            			if(!queryDryResult.isEmpty()) {
-            				mapper.delete(queryDryResult.get(queryDryResult.size() - 1));
+            			mapper.delete(queryDryResult.get(queryDryResult.size() - 1));
+            			
+            			if(waterLevel <= EMPTY_WATER_LEVEL) {
+            				
             				Date parsedDryTime = dateFormatter().parse(queryDryResult.get(0).getTimeStamp());
         					long timeDifference = parsedWaterTime.getTime() - parsedDryTime.getTime();
         					long previousDryTime = queryDryResult.get(0).getDryTime();
         					long totalDryTime = timeDifference + previousDryTime;
         					dryData.setDryTime(totalDryTime);
+        					
             				if(valveOpen == 0) {
-                				dryData.setID(queryWaterResult.get(0).getID());
-            					dryData.setTimeStamp(queryWaterResult.get(queryWaterResult.size()-1).getTimeStamp());
+            					setData(dryData, queryWaterResult);
             					dryData.setStatus("In-Progress");	
-                			}
-                			else if(valveOpen == 1) {
-                				dryData.setID(queryWaterResult.get(0).getID());
-            					dryData.setTimeStamp(queryWaterResult.get(queryWaterResult.size()-1).getTimeStamp());
+                			} else if(valveOpen == 1) {
+                				setData(dryData, queryWaterResult);
             					dryData.setStatus("Done");
                 			}
-            				mapper.save(dryData);
         					
-            			}
-        				else if(queryDryResult.isEmpty()) {
-        					if (queryWaterResult.get(queryWaterResult.size()-1).getValveOpen() == 0) {
-        						dryData.setID(queryWaterResult.get(0).getID());
-            					dryData.setTimeStamp(queryWaterResult.get(queryWaterResult.size()-1).getTimeStamp());
-        						dryData.setStatus("In-Progress");
-        					}
+            			} else if(waterLevel >= EMPTY_WATER_LEVEL){
+    						setData(dryData, queryWaterResult);
+    						dryData.setStatus("Invalid Due to External Source");
         				}
-        				mapper.save(dryData);
-            		}
+        				
+            		} else if(queryDryResult.isEmpty()){
+            			if (queryWaterResult.get(queryWaterResult.size()-1).getValveOpen() == 0) {
+    						setData(dryData, queryWaterResult);
+    						dryData.setStatus("In-Progress");
+            			}
     			}
-    		
+    		/*
     		for(WaterData waterData : queryWaterResult) {
     			System.out.println(waterData.toString());
+    		}
+    		*/
+            		mapper.save(dryData);
     		}
     		return "Data Transferred!";
     	}
@@ -113,6 +116,10 @@ public class DryTimeQuery implements RequestHandler<Object, String> {
 				.withFilterExpression("statusOfProcess = :val2")
 				.withExpressionAttributeValues(eavDry);
 		return queryDryExpression;
+    }
+    public void setData(DryData data, List<WaterData> queryResult) {
+    	data.setID(queryResult.get(0).getID());
+		data.setTimeStamp(queryResult.get(queryResult.size()-1).getTimeStamp());
     }
 
 }

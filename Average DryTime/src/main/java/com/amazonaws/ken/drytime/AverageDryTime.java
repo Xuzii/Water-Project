@@ -1,5 +1,11 @@
 package com.amazonaws.ken.drytime;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -9,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import org.json.JSONObject;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
@@ -115,5 +122,33 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
     	currentDate.setTime(currentTime);
     	int totalMinute = currentDate.getHours() * 60 + currentDate.getMinutes();
 		return totalMinute;
+    }
+    public void httpConnection() {
+    	String result = "";
+    	try {
+			URL url = new URL(URL_OPENWEATHERMAP_WEATHER_SAMMAMISH);
+			HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+			if (httpURLConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+				InputStreamReader inputStreamReader = new InputStreamReader(httpURLConnection.getInputStream());
+				BufferedReader bufferedReader = new BufferedReader(inputStreamReader, 8192);
+				String line = null;
+				while((line = bufferedReader.readLine()) != null) {
+					result += line;
+				}
+				bufferedReader.close();
+				String rainChance = chanceOfRain(result);
+			}
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    private String chanceOfRain(String json) throws JSONException{
+    	String rainChance = "";
+    	
+    	JSONObject jsonObject = new JSONObject(json);
     }
 }

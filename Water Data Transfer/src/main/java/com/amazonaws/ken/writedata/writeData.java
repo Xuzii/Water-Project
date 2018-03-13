@@ -18,7 +18,7 @@ public class writeData implements RequestHandler<RequestData, String> {
         //context.getLogger().log("Input: " + input);
 
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
-
+        
         DynamoDBMapper mapper = new DynamoDBMapper(client);
         
         String dateNow = currentDate();

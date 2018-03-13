@@ -57,15 +57,17 @@ public class DryTimeQuery implements RequestHandler<Object, String> {
                 			}
         					
             			} else if(waterLevel >= EMPTY_WATER_LEVEL){
-    						setData(dryData, queryWaterResult);
-    						dryData.setStatus("Invalid Due to External Source");
+            				if(valveOpen == 1) {
+            					setData(dryData, queryWaterResult);
+        						dryData.setStatus("Invalid Due to External Source");
+            				} 
         				}
         				
             		} else if(queryDryResult.isEmpty()){
-            			if (queryWaterResult.get(queryWaterResult.size()-1).getValveOpen() == 0) {
+            			if (queryWaterResult.get(queryWaterResult.size() - 1).getWaterLevel() <= EMPTY_WATER_LEVEL && queryWaterResult.get(queryWaterResult.size()-1).getValveOpen() == 0) {
     						setData(dryData, queryWaterResult);
     						dryData.setStatus("In-Progress");
-            			}
+            			} 
     			}
     		/*
     		for(WaterData waterData : queryWaterResult) {

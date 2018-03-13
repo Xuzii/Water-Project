@@ -29,7 +29,7 @@ public class AverageDryTime implements RequestHandler<Object, String> {
     	
         List<DryData> queryResult = mapper.query(DryData.class, dryTimeQuery());
         ArrayList<Long> dryTimes = new ArrayList<Long>();
-        ArrayList<Date> valveOpenTimes = new ArrayList<Date>();
+        ArrayList<Long> valveOpenTimes = new ArrayList<Long>();
         for(DryData dryData : queryResult) {
         	dryTimes.add(dryData.getDryTime());
         }
@@ -37,7 +37,10 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         	Date formattedDate;
 			try {
 				formattedDate = dateFormatter().parse(timeStamp.getTimeStamp());
-				valveOpenTimes.add(formattedDate);
+				long minToHour = formattedDate.getHours() * 60;
+	        	long minute = formattedDate.getMinutes();
+	        	long totalTime = minToHour + minute;
+				valveOpenTimes.add(totalTime);
 			} catch (ParseException e) {
 				e.printStackTrace();
 			}
@@ -45,10 +48,11 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         Collections.sort(dryTimes);
         Collections.sort(valveOpenTimes);
         long averageDryTime = bestTime(dryTimes);
+        long averageValveTime = bestTime(valveOpenTimes);
 
         
         
-        return averageDryTime + "";
+        return "Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime;
     }
     
     public DynamoDBQueryExpression<DryData> dryTimeQuery(){
@@ -78,15 +82,15 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         	q1 = dataSet.get(dataSet.size()/2/2);
         	q3 = dataSet.get(dataSet.size()/2 + dataSet.size()/2/2);
         }
-        long totalDryTime = 0;
+        long totalTime = 0;
         int numberOfValues = 0;
         for(Long timeValue : dataSet) {
         	if(timeValue > q1 && timeValue < q3) {
-        		totalDryTime += timeValue;
+        		totalTime += timeValue;
         		numberOfValues++;
         	}
         }
-        return totalDryTime/numberOfValues;
+        return totalTime/numberOfValues;
     	
     }
 

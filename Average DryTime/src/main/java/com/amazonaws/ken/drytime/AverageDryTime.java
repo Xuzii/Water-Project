@@ -18,10 +18,10 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 
-public class AverageDryTime implements RequestHandler<Object, String> {
+public class AverageDryTime implements RequestHandler<Object, Boolean> {
 
     @Override
-    public String handleRequest(Object input, Context context) {
+    public Boolean handleRequest(Object input, Context context) {
         context.getLogger().log("Input: " + input);
         
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
@@ -50,9 +50,19 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         long averageDryTime = bestTime(dryTimes);
         long averageValveTime = bestTime(valveOpenTimes);
 
+        System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
         
+        if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
+        	if(queryResult.get(queryResult.size() - 1).getDryTime() < averageDryTime + 60000 && queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
+        		return true;
+        	}else {
+        		return false;
+        	}
+        	
+        }else {
+        	return false;
+        }
         
-        return "Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime;
     }
     
     public DynamoDBQueryExpression<DryData> dryTimeQuery(){
@@ -93,5 +103,11 @@ public class AverageDryTime implements RequestHandler<Object, String> {
         return totalTime/numberOfValues;
     	
     }
-
+    public long currentClockTime() {
+    	long currentTime = (new Date()).getTime();
+    	Date currentDate = new Date();
+    	currentDate.setTime(currentTime);
+    	int totalMinute = currentDate.getHours() * 60 + currentDate.getMinutes();
+		return totalMinute;
+    }
 }

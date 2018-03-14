@@ -15,6 +15,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
@@ -28,8 +31,8 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 public class AverageDryTime implements RequestHandler<Object, Boolean> {
 
     
-    public static final String URL_OPENWEATHERMAP_WEATHER_SAMMAMISH =
-    		"http://api.openweathermap.org/data/2.5/weather?q=Sammamish";
+    public static final String URL_DARKSKY_WEATHER_SAMMAMISH =
+    		"https://api.darksky.net/forecast/2141d25f35656aa0c44a7fb584653cdc/47.6163,-122.0356";
 	
 	@Override
     public Boolean handleRequest(Object input, Context context) {
@@ -63,16 +66,29 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 
         System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
         
+        HashMap<String, Double> rainChance = null;
+		try {
+			rainChance = chanceOfRain(httpConnection());
+			System.out.println(rainChance.get("Hour"));
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
         if (queryResult.size() < 7) {
         	return false;
         } else if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
-        	if(queryResult.get(queryResult.size() - 1).getDryTime() < averageDryTime + 60000 && queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
-        		return true;
-        	}else {
+        	if(queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
+        		if(rainChance.get("Hour") > .75) {
+        			return true;
+        		} else {
+        			return false;
+        		}
+        	} else {
         		return false;
         	}
         	
-        }else {
+        } else {
         	return false;
         }
         
@@ -123,10 +139,10 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
     	int totalMinute = currentDate.getHours() * 60 + currentDate.getMinutes();
 		return totalMinute;
     }
-    public void httpConnection() {
+    public String httpConnection() {
     	String result = "";
     	try {
-			URL url = new URL(URL_OPENWEATHERMAP_WEATHER_SAMMAMISH);
+			URL url = new URL(URL_DARKSKY_WEATHER_SAMMAMISH);
 			HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
 			if (httpURLConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
 				InputStreamReader inputStreamReader = new InputStreamReader(httpURLConnection.getInputStream());
@@ -136,7 +152,6 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 					result += line;
 				}
 				bufferedReader.close();
-				String rainChance = chanceOfRain(result);
 			}
 		} catch (MalformedURLException e) {
 			// TODO Auto-generated catch block
@@ -145,10 +160,27 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	return result;
     }
-    private String chanceOfRain(String json) throws JSONException{
-    	String rainChance = "";
-    	
+    private HashMap<String, Double> chanceOfRain(String json) throws JSONException{
+    	HashMap<String, Double> precipLevels = new HashMap<String, Double>();
     	JSONObject jsonObject = new JSONObject(json);
+    	double precipMinProb = 0;
+    	double precipHourProb = 0;
+    	JSONObject getJsonMinutely = jsonObject.getJSONObject("minutely");
+    	JSONArray getJsonDataM = getJsonMinutely.getJSONArray("data");
+    	for (int i = 0; i < getJsonDataM.length(); i++) {
+    		JSONObject getJsonDataObject = getJsonDataM.getJSONObject(i);
+    		precipMinProb += getJsonDataObject.getDouble("precipProbability");
+    	}
+    	precipLevels.put("Hour", precipMinProb/getJsonDataM.length());
+    	JSONObject getJsonHourly = jsonObject.getJSONObject("hourly");
+    	JSONArray getJsonDataH = getJsonHourly.getJSONArray("data");
+    	for (int i = 1; i < 5; i++) {
+    		JSONObject getJsonDataObject = getJsonDataH.getJSONObject(i);
+    		precipHourProb += getJsonDataObject.getDouble("precipProbability");
+    	}
+    	precipLevels.put("4Hours", precipHourProb/4.0);
+    	return precipLevels;
     }
 }

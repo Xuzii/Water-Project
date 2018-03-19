@@ -61,10 +61,8 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
         }
         Collections.sort(dryTimes);
         Collections.sort(valveOpenTimes);
-        long averageDryTime = bestTime(dryTimes);
-        long averageValveTime = bestTime(valveOpenTimes);
 
-        System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
+        //System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
         
         HashMap<String, Double> rainChance = null;
 		try {
@@ -74,26 +72,31 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-        if (queryResult.size() < 7) {
-        	return false;
-        } else if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
-        	if(queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
-        		if(rainChance.get("Hour") > .75) {
-        			return true;
-        		} else {
-        			return false;
-        		}
-        	} else {
-        		return false;
-        	}
-        	
-        } else {
-        	return false;
-        }
-        
+		if (!queryResult.isEmpty()) {
+			long averageDryTime = bestTime(dryTimes);
+	        long averageValveTime = bestTime(valveOpenTimes);
+	        System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
+			if (queryResult.size() < 7) {
+	        	return false;
+	        } else if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
+	        	if(queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
+	        		if(rainChance.get("Hour") > .70) {
+	        			return true;
+	        		} else {
+	        			return false;
+	        		}
+	        	} else {
+	        		return false;
+	        	}
+	        	
+	        } else {
+	        	return false;
+	        }
+		} else {
+			return false;
+		}
     }
-    
+    /* SETUP QUERY FOR DRY DATA*/
     public DynamoDBQueryExpression<DryData> dryTimeQuery(){
     	Map<String, AttributeValue> eav = new HashMap<String, AttributeValue>();
         eav.put(":val1", new AttributeValue().withN("1111"));
@@ -105,11 +108,13 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 				.withExpressionAttributeValues(eav);
         return dryTimeQueryExpression;
     }
+    /* DATE FORMATTER */
     public SimpleDateFormat dateFormatter() {
     	SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		dateFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
 		return dateFormatter;
     }
+    /* BOX AND WHISKER BASED SORTING ALGORITHIM*/
     public long bestTime(ArrayList<Long> dataSet) {
     	long q1 = 0; 
     	long q3 = 0;
@@ -132,6 +137,7 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
         return totalTime/numberOfValues;
     	
     }
+    /* CURRENT TIME */
     public long currentClockTime() {
     	long currentTime = (new Date()).getTime();
     	Date currentDate = new Date();
@@ -139,6 +145,7 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
     	int totalMinute = currentDate.getHours() * 60 + currentDate.getMinutes();
 		return totalMinute;
     }
+    /* CONNECT TO HTTP */
     public String httpConnection() {
     	String result = "";
     	try {
@@ -162,6 +169,7 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 		}
     	return result;
     }
+    /* FIND THE AVERAGE CHANCE OF RAIN VIA API */
     private HashMap<String, Double> chanceOfRain(String json) throws JSONException{
     	HashMap<String, Double> precipLevels = new HashMap<String, Double>();
     	JSONObject jsonObject = new JSONObject(json);

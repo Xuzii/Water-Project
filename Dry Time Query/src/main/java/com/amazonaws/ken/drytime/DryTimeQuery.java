@@ -57,7 +57,7 @@ public class DryTimeQuery implements RequestHandler<Object, String> {
                 			}
         					
             			} else if(waterLevel >= EMPTY_WATER_LEVEL){
-            				if(valveOpen == 1) {
+            				if(valveOpen == 1 || valveOpen == 0) {
             					setData(dryData, queryWaterResult);
         						dryData.setStatus("Invalid Due to External Source");
             				} 

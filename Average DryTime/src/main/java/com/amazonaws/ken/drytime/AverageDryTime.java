@@ -71,13 +71,14 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if (queryResult.size() >= 7) {
+		if (queryResult.size() >= 10) {
 			long averageDryTime = bestTime(dryTimes);
 	        long averageValveTime = bestTime(valveOpenTimes);
 	        System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
+	        System.out.println(queryResult.get(queryResult.size() - 1).getDryTime());
 			if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
-	        	if(queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
-	        		if(rainChance.get("Hour") > .70) {
+	        	if(queryResult.get(queryResult.size() - 1).getDryTime() >= averageDryTime - 60000) {
+	        		if(rainChance.get("Hour") < .70) {
 	        			return true;
 	        		} else {
 	        			return false;
@@ -98,10 +99,11 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
     	Map<String, AttributeValue> eav = new HashMap<String, AttributeValue>();
         eav.put(":val1", new AttributeValue().withN("1111"));
         eav.put(":val2", new AttributeValue().withS("Done"));
+        eav.put(":val3", new AttributeValue().withS("In-Progress"));
         
         DynamoDBQueryExpression<DryData> dryTimeQueryExpression = new DynamoDBQueryExpression<DryData>()
         		.withKeyConditionExpression("ID = :val1")
-				.withFilterExpression("statusOfProcess = :val2")
+				.withFilterExpression("statusOfProcess = :val2 or statusOfProcess = :val3")
 				.withExpressionAttributeValues(eav);
         return dryTimeQueryExpression;
     }
@@ -113,8 +115,9 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
     }
     /* BOX AND WHISKER BASED SORTING ALGORITHIM*/
     public long bestTime(ArrayList<Long> dataSet) {
-    	long q1 = 0; 
-    	long q3 = 0;
+    	dataSet.remove(dataSet.size()-1);
+    	double q1 = 0; 
+    	double q3 = 0;
         if(dataSet.size()/2 != 0) {
         	q1 = (dataSet.get(dataSet.size()/2/2 - 1) + dataSet.get(dataSet.size()/2/2))/2;
         	q3 = (dataSet.get(dataSet.size()/2/2 + dataSet.size()/2 + 1) + dataSet.get(dataSet.size()/2/2 + dataSet.size()/2 + 2))/2;
@@ -123,10 +126,11 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
         	q1 = dataSet.get(dataSet.size()/2/2);
         	q3 = dataSet.get(dataSet.size()/2 + dataSet.size()/2/2);
         }
+        System.out.println(q1 +  " | " + q3);
         long totalTime = 0;
         int numberOfValues = 0;
         for(Long timeValue : dataSet) {
-        	if(timeValue > q1 && timeValue < q3) {
+        	if(timeValue >= q1 && timeValue <= q3) {
         		totalTime += timeValue;
         		numberOfValues++;
         	}
@@ -140,7 +144,7 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
     	Date currentDate = new Date();
     	currentDate.setTime(currentTime);
     	int totalMinute = currentDate.getHours() * 60 + currentDate.getMinutes();
-		return totalMinute;
+		return 335;
     }
     /* CONNECT TO HTTP */
     public String httpConnection() {

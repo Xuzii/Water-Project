@@ -1,0 +1,135 @@
+/**
+ *  SmartWater
+ *
+ *  Copyright 2018 Iman Haryadi
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+ 
+ /* 
+ **ATTENTION**
+ THE REASON BEHIND NAMES BEING "IMAN HARYADI" IS BECAUSE I AM USING MY DAD's DEVELOPR ACCOUNT. I, KENNETH RUSLIM, WROTE THE CODE MYSELF W/O ASSISTANCE FROM IMAN.
+ */
+definition(
+    name: "SmartWater",
+    namespace: "iharyadi",
+    author: "Iman Haryadi",
+    description: "Smart Watering System",
+    category: "",
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
+    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png") {
+    appSetting "amazonkey"
+}
+
+
+preferences {
+	section("Choose a water level... "){
+		input "sensor", "capability.RelativeHumidityMeasurement", title: "Water Sensor"
+	}
+    
+    section("Choose watering valve ... "){
+		input "valve", "capability.Switch", title: "Valve"
+	}
+}
+
+def installed() {
+	log.debug "Installed with settings: ${settings}"
+	initialize()
+}
+
+def updated() {
+	log.debug "Updated with settings: ${settings}"
+
+	unsubscribe()
+	initialize()
+}
+
+def initialize() {
+	// TODO: subscribe to attributes, devices, locations, etc.
+    if (sensor) {
+    	subscribe(sensor, "humidity", waterLevelHandler)
+    }
+        
+	if (valve) {
+		subscribe(valve, "switch", valveHandler)
+	}
+}
+
+def waterLevelHandler(evt){
+	def currentStateOfHumidity = sensor.currentState("humidity")
+    def currentStateOfValve = valve.currentState("switch")
+    String valveStatus = currentStateOfValve.value
+	
+    int valveStatusCon = 0
+    if (valveStatus == "on"){
+    	valveStatusCon = 1
+    }
+    
+    if(getWaterDec() && valveStatus == "off"){
+    	valve.on()
+    }
+
+    String parseHumidity = currentStateOfHumidity.value
+    sendData(parseHumidity, valveStatusCon)
+    log.debug "status of humidty: ${currentStateOfHumidity.value}" 
+    log.debug "status of valve: ${currentStateOfValve.value}"  
+    log.debug "${getWaterDec()}"
+}
+
+def valveHandler(evt){
+    def currentStateOfHumidity = sensor.currentState("humidity")
+    def currentStateOfValve = valve.currentState("switch")
+    String valveStatus = currentStateOfValve.value
+	
+    int valveStatusCon = 0
+    if (valveStatus == "on"){
+    	valveStatusCon = 1
+    }
+    
+    String parseHumidity = currentStateOfHumidity.value
+    sendData(parseHumidity, valveStatusCon)
+    log.debug "status of humidty: ${currentStateOfHumidity.value}" 
+    log.debug "status of valve: ${currentStateOfValve.value}"
+    log.debug "${getWaterDec()}"
+}
+
+public void sendData(String waterLevel, int valveStatus){
+	def params = [
+    	uri: "https://na80ap1qoh.execute-api.us-west-2.amazonaws.com/API_KEY_WATERDATA_TRANSFER/waterdata",
+        body: ["waterLevel": waterLevel , "valveOpen" : valveStatus],
+        ]
+	try{
+    	httpPostJson(params) {resp ->
+        log.debug "response status code: ${resp.status}"
+        log.debug "response data: ${resp.data}"
+        }
+    } catch (e){
+    	log.error("caught exception", e)
+    }	
+}
+public boolean getWaterDec(){
+def params = [
+    	uri: "https://na80ap1qoh.execute-api.us-west-2.amazonaws.com/API_KEY_WATER_DEC/autovalve",
+        ]
+    try{
+        return httpGet(params) {resp ->
+            log.debug "response status code: ${resp.status}"
+            log.debug "response data: ${resp.data}"
+        }
+    } catch (e){
+    	log.error("caught exception", e)
+    }	
+}
+ /* 
+ **ATTENTION**
+ THE REASON BEHIND NAMES BEING "IMAN HARYADI" IS BECAUSE I AM USING MY DAD's DEVELOPR ACCOUNT. I, KENNETH RUSLIM, WROTE THE CODE MYSELF W/O ASSISTANCE FROM IMAN.
+ */

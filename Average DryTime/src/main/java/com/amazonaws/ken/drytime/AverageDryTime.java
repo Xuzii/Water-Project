@@ -36,7 +36,7 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
 	
 	@Override
     public Boolean handleRequest(Object input, Context context) {
-        context.getLogger().log("Input: " + input);
+        //context.getLogger().log("Input: " + input);
         
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
     	DynamoDBMapper mapper = new DynamoDBMapper(client);
@@ -61,24 +61,21 @@ public class AverageDryTime implements RequestHandler<Object, Boolean> {
         }
         Collections.sort(dryTimes);
         Collections.sort(valveOpenTimes);
-
-        //System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
         
         HashMap<String, Double> rainChance = null;
 		try {
 			rainChance = chanceOfRain(httpConnection());
-			System.out.println(rainChance.get("Hour"));
+			System.out.println("Chance of Rain in the Next Hour:" + rainChance.get("Hour"));
+			System.out.println("Chance of Rain in the Next 4 Hours: " + rainChance.get("4Hours"));
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if (!queryResult.isEmpty()) {
+		if (queryResult.size() >= 7) {
 			long averageDryTime = bestTime(dryTimes);
 	        long averageValveTime = bestTime(valveOpenTimes);
 	        System.out.println("Average Dry Time: " + averageDryTime + " | Average Valve Time: " + averageValveTime);
-			if (queryResult.size() < 7) {
-	        	return false;
-	        } else if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
+			if(currentClockTime() < averageValveTime + 30 && currentClockTime() > averageValveTime - 30) {
 	        	if(queryResult.get(queryResult.size() - 1).getDryTime() > averageDryTime - 60000) {
 	        		if(rainChance.get("Hour") > .70) {
 	        			return true;

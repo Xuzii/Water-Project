@@ -79,6 +79,7 @@ public class WriteData implements RequestHandler<RequestData, String> {
 					long timeDifference = parsedWaterTime.getTime() - parsedDryTime.getTime();
 					long previousDryTime = queryDryResult.get(0).getDryTime();
 					long totalDryTime = timeDifference + previousDryTime;
+					System.out.println("DRY TIME: " + totalDryTime);
 					dryData.setDryTime(totalDryTime);
 					
     				if(valveOpen == 0) { // if the valve is still closed continue finding dry time
@@ -95,19 +96,23 @@ public class WriteData implements RequestHandler<RequestData, String> {
 						dryData.setStatus("Invalid Due to External Source");
     				} 
 				}
+    			mapper.save(dryData);
 				
     		} else if(queryDryResult.isEmpty()){ // if there isnt anything in progress make one!
     			if (input.getWaterLevel() <= EMPTY_WATER_LEVEL && input.getValveOpen() == 0) {
 					setData(dryData, input);
+					System.out.println("DRY TIME: " + dryData.getDryTime());
 					dryData.setStatus("In-Progress");
-    			} 
+					mapper.save(dryData);
+    			}
 			}
+    		
 		/*
 		for(WaterData waterData : queryWaterResult) {
 			System.out.println(waterData.toString());
 		}
 		*/
-        		mapper.save(dryData);
+    		
 		System.out.println( "Data Transferred!");
 	}	catch (Exception e) {
 		e.printStackTrace(); 
